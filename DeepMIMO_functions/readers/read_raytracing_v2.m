@@ -36,6 +36,7 @@ function [channel_params_user, channel_params_BS, BS_loc] = read_raytracing_v2(B
             params.num_user = params_inner.UE_file_split(2, file_idx);
             filename = strcat('BS', num2str(BS_ID), '_UE_', num2str(params_inner.UE_file_split(1, file_idx)), '-', num2str(params_inner.UE_file_split(2, file_idx)), '.mat');
             data = importdata(fullfile(params_inner.scenario_files, filename));
+            BS_loc = data.tx_loc;
             user_start = params_inner.UE_file_split(1, file_idx);
             
             for ue_idx = 1:params.num_user
@@ -64,6 +65,7 @@ function [channel_params_user, channel_params_BS, BS_loc] = read_raytracing_v2(B
             if ~file_loaded
                 filename = strcat('BS', num2str(BS_ID), '_UE_', num2str(params_inner.UE_file_split(1, file_idx)), '-', num2str(params_inner.UE_file_split(2, file_idx)), '.mat');
                 data = importdata(fullfile(params_inner.scenario_files, filename));
+                BS_loc = data.tx_loc;
                 user_start = params_inner.UE_file_split(1, file_idx);
                 file_loaded = 1;
             end
@@ -87,30 +89,31 @@ function [channel_params_user, channel_params_BS, BS_loc] = read_raytracing_v2(B
 
     %% Loading channel parameters between current active basesation transmitter and all the active basestation receivers
     user_count = 1;
-    filename = strcat('BS', num2str(BS_ID), '_BS.mat');
-    data = importdata(fullfile(params_inner.scenario_files, filename));
-    for bs_idx = params.active_BS
-
-        max_paths = double(size(data.(data_key_name){bs_idx}.p, 2));
-        num_path_limited = double(min(num_paths, max_paths));
-
-        channel_params = data.(data_key_name){bs_idx}.p;
-        add_info = data.rx_locs(bs_idx, :);
-
-        if bs_idx == BS_ID
-            BS_loc = add_info(1:3);
-        end
-
-        channel_params_all_BS(user_count) = parse_data(params_inner.doppler_available, num_path_limited, channel_params, add_info, power_diff);
-        dc.add_ToA(channel_params_all_BS(user_count).power, channel_params_all_BS(user_count).ToA);
-
-        user_count = user_count + 1;
-    end
-
-    channel_params_BS = channel_params_all_BS(1,:);
+    if params.enable_BS2BSchannels
+        filename = strcat('BS', num2str(BS_ID), '_BS.mat');
+        data = importdata(fullfile(params_inner.scenario_files, filename));
+        for bs_idx = params.active_BS
     
-    dc.print_warnings('BS', BS_ID);
-    dc.reset()
+            max_paths = double(size(data.(data_key_name){bs_idx}.p, 2));
+            num_path_limited = double(min(num_paths, max_paths));
+    
+            channel_params = data.(data_key_name){bs_idx}.p;
+            add_info = data.rx_locs(bs_idx, :);
+    
+            if bs_idx == BS_ID
+                BS_loc = add_info(1:3);
+            end
+    
+            channel_params_all_BS(user_count) = parse_data(params_inner.doppler_available, num_path_limited, channel_params, add_info, power_diff);
+            dc.add_ToA(channel_params_all_BS(user_count).power, channel_params_all_BS(user_count).ToA);
+    
+            user_count = user_count + 1;
+        end
+        
+        dc.print_warnings('BS', BS_ID);
+        dc.reset()
+    end
+    channel_params_BS = channel_params_all_BS(1,:);
 
 end
 

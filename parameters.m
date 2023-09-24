@@ -54,6 +54,7 @@ params.ant_spacing_UE = .5;           % ratio of the wavelength; for half wavele
 params.radiation_pattern = 0;         % 0: Isotropic and 
                                       % 1: Half-wave dipole
                  
+params.enable_BS2BSchannels = 1;  
 params.dual_polar = 0;
 
 % System parameters
